@@ -1,275 +1,243 @@
-# 🗄️ Inventory API — Laravel 13 + JWT Auth
+# 📘 Panduan Laravel 13 — Blog API
 
-Backend REST API untuk aplikasi manajemen inventaris, dibangun dengan **Laravel 13** dan autentikasi berbasis **JWT (JSON Web Token)** menggunakan library `tymon/jwt-auth`.
-
----
-
-## 🗂️ Daftar Isi
-
-- [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
-- [Fitur API](#-fitur-api)
-- [Struktur Folder](#-struktur-folder)
-- [Prasyarat](#-prasyarat)
-- [Cara Clone & Install](#-cara-clone--install)
-- [Konfigurasi](#-konfigurasi)
-- [Menjalankan Aplikasi](#-menjalankan-aplikasi)
-- [Daftar Endpoint API](#-daftar-endpoint-api)
-- [Skema Database](#-skema-database)
-- [Penjelasan Konsep Penting](#-penjelasan-konsep-penting)
-- [Troubleshooting](#-troubleshooting)
+Panduan ini akan membimbing kamu dari **nol** hingga membuat REST API blog lengkap dengan Laravel 13, menggunakan JWT untuk autentikasi.
 
 ---
 
-## 🧰 Teknologi yang Digunakan
+## 📋 Daftar Isi
 
-| Teknologi                                                  | Versi | Keterangan                 |
-| ---------------------------------------------------------- | ----- | -------------------------- |
-| [Laravel](https://laravel.com/)                            | 13    | PHP Framework utama        |
-| [PHP](https://www.php.net/)                                | ^8.2  | Bahasa pemrograman backend |
-| [MySQL](https://www.mysql.com/)                            | 8.x   | Database relasional        |
-| [tymon/jwt-auth](https://github.com/tymondesigns/jwt-auth) | ^2.x  | Library autentikasi JWT    |
-| [Composer](https://getcomposer.org/)                       | ^2.x  | Package manager PHP        |
-
----
-
-## ✨ Fitur API
-
-| Fitur              | Keterangan                                            |
-| ------------------ | ----------------------------------------------------- |
-| **Register**       | Registrasi user baru                                  |
-| **Login**          | Login dan mendapatkan JWT token                       |
-| **Get Me**         | Ambil data user yang sedang login                     |
-| **Logout**         | Invalidasi token JWT                                  |
-| **Update Profil**  | Update nama, password, dan avatar user                |
-| **CRUD Produk**    | Create, Read, Update, Delete produk                   |
-| **Upload Gambar**  | Upload gambar produk & avatar user                    |
-| **Proteksi Route** | Semua route produk & profil dilindungi JWT middleware |
+1. [Persiapan](#1-persiapan)
+2. [Buat Project Laravel](#2-buat-project-laravel)
+3. [Konfigurasi Database](#3-konfigurasi-database)
+4. [Install JWT](#4-install-jwt)
+5. [Struktur Folder](#5-struktur-folder)
+6. [Migration](#6-migration)
+7. [Model](#7-model)
+8. [Middleware CheckToken](#8-middleware-checktoken)
+9. [AuthController](#9-authcontroller)
+10. [CategoryController](#10-categorycontroller)
+11. [PostController](#11-postcontroller)
+12. [Routes API](#12-routes-api)
+13. [Konfigurasi CORS](#13-konfigurasi-cors)
+14. [Jalankan Server](#14-jalankan-server)
 
 ---
 
-## 📁 Struktur Folder
+## 1. Persiapan
 
-```
-backend-laravel/
-│
-├── app/
-│   ├── Http/
-│   │   └── Controllers/
-│   │       ├── AuthController.php      # Login, Register, Me, Logout, Update Profil
-│   │       └── ProductController.php   # CRUD Produk (index, store, show, update, destroy)
-│   │
-│   └── Models/
-│       ├── User.php                    # Model User (implements JWTSubject)
-│       └── Product.php                 # Model Product
-│
-├── bootstrap/
-│   └── app.php                         # ⚠️ Wajib daftarkan routes/api.php di sini
-│
-├── config/
-│   └── auth.php                        # Konfigurasi guard JWT
-│
-├── database/
-│   └── migrations/
-│       ├── xxxx_create_users_table.php
-│       ├── xxxx_add_avatar_to_users_table.php
-│       └── xxxx_create_products_table.php
-│
-├── public/
-│   └── uploads/
-│       ├── products/                   # Folder penyimpanan gambar produk
-│       └── avatars/                    # Folder penyimpanan avatar user
-│
-├── routes/
-│   └── api.php                         # Definisi semua route API
-│
-├── .env                                # Konfigurasi environment (jangan di-commit)
-├── .env.example                        # Template konfigurasi environment
-└── composer.json                       # Daftar dependencies PHP
-```
+Pastikan sudah terinstall:
 
-### Penjelasan File Kunci
+- **PHP** versi 8.2 ke atas
+- **Composer** → [download di getcomposer.org](https://getcomposer.org)
+- **MySQL** atau database lainnya
+- **VS Code** atau editor pilihan kamu
 
-| File                    | Fungsi                                                          |
-| ----------------------- | --------------------------------------------------------------- |
-| `AuthController.php`    | Menangani semua proses autentikasi user                         |
-| `ProductController.php` | Menangani CRUD produk beserta upload gambar                     |
-| `User.php`              | Model user, wajib `implements JWTSubject` agar JWT bisa bekerja |
-| `Product.php`           | Model produk dengan `$fillable` dan `$casts`                    |
-| `routes/api.php`        | Semua route API, dibagi public dan protected                    |
-| `bootstrap/app.php`     | Konfigurasi bootstrap Laravel, tempat mendaftarkan `api.php`    |
-| `config/auth.php`       | Mengatur default guard menjadi `api` dengan driver `jwt`        |
-
----
-
-## 🛠️ Prasyarat
-
-Pastikan semua software berikut sudah terpasang sebelum memulai.
-
-| Software     | Versi Minimum | Cara Cek                                  |
-| ------------ | ------------- | ----------------------------------------- |
-| **PHP**      | 8.2 ke atas   | `php --version`                           |
-| **Composer** | 2.x           | `composer --version`                      |
-| **MySQL**    | 8.x           | Cek via phpMyAdmin atau `mysql --version` |
-| **Git**      | —             | `git --version`                           |
-
-> **Rekomendasi:** Gunakan [XAMPP](https://www.apachefriends.org/) atau [Laragon](https://laragon.org/) untuk kemudahan setup PHP & MySQL di Windows.
-
----
-
-## 🚀 Cara Clone & Install
-
-Ikuti langkah-langkah berikut secara berurutan.
-
-### Langkah 1 — Clone Repository
+Cek versi:
 
 ```bash
-git clone https://github.com/username/backend-laravel-inventory.git
+php -v
+composer -V
 ```
 
-Masuk ke folder proyek:
+---
+
+## 2. Buat Project Laravel
 
 ```bash
-cd backend-laravel-inventory
+composer create-project laravel/laravel blog-api
+cd blog-api
 ```
 
-### Langkah 2 — Install Dependencies PHP
+> **Penjelasan:**
+>
+> - `composer create-project` → membuat project Laravel baru dari template resmi
+> - `blog-api` → nama folder project kamu
 
-```bash
-composer install
-```
+---
 
-> Perintah ini mengunduh semua package PHP yang dibutuhkan ke folder `vendor/`.
+## 3. Konfigurasi Database
 
-### Langkah 3 — Salin File Environment
-
-```bash
-cp .env.example .env
-```
-
-> Di Windows (CMD), gunakan: `copy .env.example .env`
-
-### Langkah 4 — Konfigurasi Database
-
-Buka file `.env` dan sesuaikan konfigurasi database:
+Buka file `.env` di root project, sesuaikan bagian database:
 
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=laravel_training_inventory
+DB_DATABASE=blog_api
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-> Pastikan database `laravel_training_inventory` sudah dibuat di MySQL. Buat via phpMyAdmin atau perintah:
+> Buat dulu database `blog_api` di MySQL:
 >
 > ```sql
-> CREATE DATABASE laravel_training_inventory;
+> CREATE DATABASE blog_api;
 > ```
-
-### Langkah 5 — Generate Application Key
-
-```bash
-php artisan key:generate
-```
-
-### Langkah 6 — Generate JWT Secret
-
-```bash
-php artisan jwt:secret
-```
-
-> Perintah ini men-generate `JWT_SECRET` di file `.env`. **Wajib dijalankan** agar autentikasi JWT bisa bekerja. Tanpa ini, login akan selalu error.
-
-### Langkah 7 — Setup Route API
-
-Di Laravel 11+, file `routes/api.php` tidak otomatis terdaftar. Jalankan:
-
-```bash
-php artisan install:api
-```
-
-> Perintah ini mendaftarkan `api.php` dan memastikan prefix `/api` aktif.
-
-### Langkah 8 — Jalankan Migration
-
-```bash
-php artisan migrate
-```
-
-> Perintah ini membuat semua tabel di database (users, products, dll).
-
-### Langkah 9 — Buat Folder Upload
-
-Buat folder untuk menyimpan gambar produk dan avatar user:
-
-```bash
-mkdir -p public/uploads/products
-mkdir -p public/uploads/avatars
-```
-
-> Di Windows: `mkdir public\uploads\products` dan `mkdir public\uploads\avatars`
 
 ---
 
-## ⚙️ Konfigurasi
+## 4. Install JWT
 
-### 1. `bootstrap/app.php` — Daftarkan Route API
+Kita pakai package `tymon/jwt-auth` sebagai pengganti Sanctum, lebih ringan dan tidak perlu tabel tambahan.
 
-Pastikan file `bootstrap/app.php` mendaftarkan `routes/api.php`:
-
-```php
-return Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php', // ← wajib ada baris ini
-        commands: __DIR__.'/../routes/console.php',
-        health: '/up',
-    )
-    ->withMiddleware(function (Middleware $middleware): void {
-        //
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+```bash
+composer require tymon/jwt-auth
+php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider"
+php artisan jwt:secret
 ```
 
-> ⚠️ Jika baris `api:` tidak ada, semua request ke `/api/*` akan mengembalikan halaman HTML bukan JSON.
+> **Penjelasan:**
+>
+> - `vendor:publish` → menyalin file konfigurasi JWT ke project kamu
+> - `jwt:secret` → generate secret key JWT, disimpan otomatis ke `.env` sebagai `JWT_SECRET`
 
-### 2. `config/auth.php` — Konfigurasi Guard JWT
+Set guard JWT di `config/auth.php`:
 
 ```php
 'defaults' => [
-    'guard' => 'api',           // ← ubah dari 'web' ke 'api'
+    'guard' => 'api',   // ← ganti dari 'web' ke 'api'
     'passwords' => 'users',
 ],
 
 'guards' => [
     'api' => [
-        'driver'   => 'jwt',    // ← driver harus 'jwt'
+        'driver'   => 'jwt',      // ← ganti dari 'token' ke 'jwt'
         'provider' => 'users',
     ],
 ],
 ```
 
-### 3. `app/Models/User.php` — Implements JWTSubject
+---
 
-Model User **wajib** mengimplementasikan interface `JWTSubject` beserta dua method-nya:
+## 5. Struktur Folder
+
+File yang akan kita buat:
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── AuthController.php
+│   │   ├── CategoryController.php
+│   │   └── PostController.php
+│   └── Middleware/
+│       └── CheckToken.php
+├── Models/
+│   ├── User.php       ← edit file yang sudah ada
+│   ├── Category.php   ← buat baru
+│   └── Post.php       ← buat baru
+database/
+└── migrations/
+    ├── ..._create_users_table.php      ← sudah ada
+    ├── ..._create_categories_table.php ← buat baru
+    └── ..._create_posts_table.php      ← buat baru
+routes/
+└── api.php
+```
+
+---
+
+## 6. Migration
+
+### Users (sudah ada, tidak perlu diubah)
+
+File `database/migrations/0001_01_01_000000_create_users_table.php` sudah otomatis dibuat oleh Laravel.
+
+### Buat Migration Categories
+
+```bash
+php artisan make:migration create_category_table
+```
+
+Edit file migration yang baru dibuat:
 
 ```php
+public function up(): void
+{
+    Schema::create('categories', function (Blueprint $table) {
+        $table->id();
+        $table->string('category_name');
+        $table->timestamps();
+    });
+}
+
+public function down(): void
+{
+    Schema::dropIfExists('categories');
+}
+```
+
+### Buat Migration Posts
+
+```bash
+php artisan make:migration create_posts_table
+```
+
+Edit file migration yang baru dibuat:
+
+```php
+public function up(): void
+{
+    Schema::create('posts', function (Blueprint $table) {
+        $table->id();
+        $table->string('title');
+        $table->string('slug')->unique();
+        $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+        $table->text('content');
+        $table->timestamps();
+    });
+}
+
+public function down(): void
+{
+    Schema::dropIfExists('posts');
+}
+```
+
+> **Penjelasan:**
+>
+> - `foreignId('user_id')->constrained()` → otomatis membuat foreign key ke tabel `users`
+> - `cascadeOnDelete()` → jika user dihapus, semua postnya ikut terhapus
+> - `slug()->unique()` → slug harus unik, dipakai sebagai pengganti ID di URL
+
+Jalankan semua migration:
+
+```bash
+php artisan migrate
+```
+
+---
+
+## 7. Model
+
+### User.php
+
+Edit file `app/Models/User.php`, tambahkan `JWTSubject`:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
-    // ...
+    use Notifiable;
 
-    // Wajib: mengembalikan primary key sebagai identifier di token
+    protected $fillable = ['name', 'email', 'password'];
+
+    protected $hidden = ['password', 'remember_token'];
+
+    // Dua method ini wajib ada karena implements JWTSubject
     public function getJWTIdentifier()
     {
         return $this->getKey();
     }
 
-    // Wajib: data tambahan di dalam token (boleh kosong)
     public function getJWTCustomClaims()
     {
         return [];
@@ -277,273 +245,528 @@ class User extends Authenticatable implements JWTSubject
 }
 ```
 
-> ⚠️ Tanpa `implements JWTSubject`, `auth()->attempt()` akan error: _"Argument #1 must be of type JWTSubject"_
+### Category.php
 
----
+Buat file `app/Models/Category.php`:
 
-## ▶️ Menjalankan Aplikasi
+```php
+<?php
 
-```bash
-php artisan serve
-```
+namespace App\Models;
 
-Server akan berjalan di:
+use Illuminate\Database\Eloquent\Model;
 
-```
-INFO  Server running on [http://127.0.0.1:8000].
-```
-
-> Biarkan terminal ini tetap berjalan selama menggunakan aplikasi.
-
-### Perintah Berguna Lainnya
-
-```bash
-# Cek semua route yang terdaftar
-php artisan route:list
-
-# Cek hanya route API
-php artisan route:list --path=api
-
-# Bersihkan cache jika ada perubahan config
-php artisan config:clear
-php artisan route:clear
-php artisan cache:clear
-```
-
----
-
-## 📡 Daftar Endpoint API
-
-Base URL: `http://127.0.0.1:8000/api`
-
-> Semua request ke route **Protected** wajib menyertakan header:
->
-> ```
-> Authorization: Bearer {token}
-> Accept: application/json
-> ```
-
-### 🔓 Public Routes (Tanpa Token)
-
-| Method | Endpoint    | Deskripsi            | Body                                                 |
-| ------ | ----------- | -------------------- | ---------------------------------------------------- |
-| `POST` | `/login`    | Login user           | `email`, `password`                                  |
-| `POST` | `/register` | Registrasi user baru | `name`, `email`, `password`, `password_confirmation` |
-
-### 🔒 Protected Routes (Perlu Token)
-
-| Method   | Endpoint          | Deskripsi                       | Body                                                      |
-| -------- | ----------------- | ------------------------------- | --------------------------------------------------------- |
-| `GET`    | `/me`             | Data user yang sedang login     | —                                                         |
-| `POST`   | `/logout`         | Logout & invalidasi token       | —                                                         |
-| `POST`   | `/update-profile` | Update profil user              | `name`?, `password`?, `password_confirmation`?, `avatar`? |
-| `GET`    | `/products`       | Ambil semua produk              | —                                                         |
-| `POST`   | `/products`       | Buat produk baru                | `name`, `price`, `stock`, `description`?, `image`?        |
-| `GET`    | `/products/{id}`  | Ambil detail produk             | —                                                         |
-| `POST`   | `/products/{id}`  | Update produk (+ `_method=PUT`) | `name`?, `price`?, `stock`?, `description`?, `image`?     |
-| `DELETE` | `/products/{id}`  | Hapus produk                    | —                                                         |
-
-### Format Response
-
-Semua response menggunakan format yang seragam:
-
-```json
+class Category extends Model
 {
-    "status": 200,
-    "message": "Products retrieved successfully",
-    "data": { ... }
-}
-```
+    protected $fillable = ['category_name'];
 
-**Response Error (Validasi):**
-
-```json
-{
-    "message": "The name field is required.",
-    "errors": {
-        "name": ["The name field is required."]
+    // Relasi: satu category punya banyak post
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
     }
 }
 ```
 
-**Response Error (Unauthorized):**
+### Post.php
 
-```json
+Buat file `app/Models/Post.php`:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Post extends Model
 {
-    "status": 401,
-    "message": "Unauthorized",
-    "data": null
+    protected $fillable = ['title', 'slug', 'content', 'user_id', 'category_id'];
+
+    // Relasi: post milik satu user
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    // Relasi: post punya satu category
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 }
 ```
 
+> **Penjelasan relasi:**
+>
+> - `hasMany` → "satu category punya banyak post"
+> - `belongsTo` → "post ini milik satu user / satu category"
+
 ---
 
-## 🗃️ Skema Database
+## 8. Middleware CheckToken
 
-### Tabel `users` (bawaan Laravel + tambahan kolom `avatar`)
+Buat file `app/Http/Middleware/CheckToken.php`:
 
 ```php
-Schema::create('users', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('email')->unique();
-    $table->timestamp('email_verified_at')->nullable();
-    $table->string('password');
-    $table->string('avatar')->nullable(); // ← kolom tambahan untuk foto profil
-    $table->rememberToken();
-    $table->timestamps();
-});
-```
+<?php
 
-### Tabel `products`
+namespace App\Http\Middleware;
 
-```php
-Schema::create('products', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->text('description')->nullable();
-    $table->integer('stock');
-    $table->decimal('price', 10, 2);    // 10 digit total, 2 angka di belakang koma
-    $table->string('image')->nullable(); // hanya menyimpan nama file, bukan path penuh
-    $table->timestamps();
-});
-```
+use Closure;
+use Illuminate\Http\Request;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
-> **Catatan:** Kolom `image` hanya menyimpan **nama file** (contoh: `1716888123_aB3xYz.jpg`), bukan path lengkap. Path lengkapnya dibangun di frontend: `http://127.0.0.1:8000/uploads/products/{image}`.
-
----
-
-## 💡 Penjelasan Konsep Penting
-
-### Mengapa Menggunakan JWT?
-
-JWT (JSON Web Token) adalah standar autentikasi **stateless** — server tidak perlu menyimpan session di database. Token dikirim di header setiap request, dan server memverifikasinya menggunakan secret key.
-
-```
-Client                          Server
-  │── POST /api/login ──────────▶ │
-  │◀── { token: "eyJ..." } ──────│
-  │                               │
-  │── GET /api/products ─────────▶│
-  │   Header: Bearer eyJ...       │ (verifikasi token)
-  │◀── { data: [...] } ──────────│
-```
-
-### Mengapa `POST` untuk Update Produk?
-
-PHP tidak mendukung parsing `FormData` dari request `PUT` atau `PATCH`. Karena upload gambar membutuhkan `multipart/form-data`, maka digunakan:
-
-- Method HTTP: `POST`
-- Tambahkan field `_method=PUT` di body
-- Laravel akan membaca `_method` dan memprosesnya sebagai `PUT`
-
-```
-// Di Postman atau frontend
-POST /api/products/1
-Body (form-data):
-  _method = PUT
-  name    = Updated Product
-  image   = [file]
-```
-
-### Mengapa Perlu Header `Accept: application/json`?
-
-Tanpa header ini, Laravel akan mengembalikan **halaman HTML** (redirect) saat terjadi error autentikasi atau validasi, bukan JSON. Dengan header ini, Laravel tahu bahwa client mengharapkan response JSON.
-
-```
-// Selalu sertakan di setiap request
-Accept: application/json
-```
-
-### Penyimpanan Gambar
-
-Gambar disimpan di folder `public/uploads/` agar bisa diakses langsung via URL:
-
-```
-File tersimpan di:
-  public/uploads/products/1716888123_aB3xYz.jpg
-
-Bisa diakses via:
-  http://127.0.0.1:8000/uploads/products/1716888123_aB3xYz.jpg
-```
-
-Format nama file menggunakan `timestamp + random string` untuk memastikan nama selalu unik dan tidak saling menimpa.
-
----
-
-## 🔧 Troubleshooting
-
-### ❌ Response HTML bukan JSON saat hit endpoint API
-
-**Penyebab:** Route API belum terdaftar atau header `Accept` tidak ada.
-
-**Solusi:**
-
-1. Cek `bootstrap/app.php` — pastikan ada `api: __DIR__.'/../routes/api.php'`
-2. Jalankan `php artisan install:api`
-3. Tambahkan header `Accept: application/json` di setiap request
-4. Jalankan `php artisan route:clear && php artisan serve`
-
----
-
-### ❌ Error: `Tymon\JWTAuth\JWTGuard::login(): Argument #1 must be of type JWTSubject`
-
-**Penyebab:** Model `User` belum mengimplementasikan interface `JWTSubject`.
-
-**Solusi:** Buka `app/Models/User.php` dan pastikan:
-
-```php
-use Tymon\JWTAuth\Contracts\JWTSubject;
-
-class User extends Authenticatable implements JWTSubject
+class CheckToken
 {
-    public function getJWTIdentifier() { return $this->getKey(); }
-    public function getJWTCustomClaims() { return []; }
+    public function handle(Request $request, Closure $next)
+    {
+        try {
+            // Ambil dan verifikasi token dari header Authorization
+            $user = JWTAuth::parseToken()->authenticate();
+
+            if (!$user) {
+                return response()->json(['message' => 'Token tidak valid'], 401);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Token tidak ada atau expired'], 401);
+        }
+
+        return $next($request);
+    }
 }
 ```
 
----
-
-### ❌ Error 401 Unauthorized padahal token sudah dikirim
-
-**Penyebab:** Token sudah expired, atau format header salah.
-
-**Solusi:**
-
-1. Login ulang untuk mendapatkan token baru
-2. Pastikan format header benar: `Authorization: Bearer {token}` (ada spasi setelah Bearer)
-3. Pastikan `config/auth.php` sudah menggunakan driver `jwt`
+> **Cara kerja:**
+>
+> - Vue mengirim token di header: `Authorization: Bearer <token>`
+> - Middleware membaca token tersebut via `JWTAuth::parseToken()`
+> - Jika valid → request dilanjutkan ke controller
+> - Jika tidak valid / tidak ada → langsung return error 401
 
 ---
 
-### ❌ Gambar tidak tersimpan saat upload
+## 9. AuthController
 
-**Penyebab:** Folder `public/uploads/` belum ada, atau route update menggunakan `PUT` langsung.
+Buat file `app/Http/Controllers/AuthController.php`:
 
-**Solusi:**
+```php
+<?php
 
-1. Buat folder: `mkdir -p public/uploads/products public/uploads/avatars`
-2. Pastikan route update di `api.php` menggunakan `Route::post()`, bukan `Route::put()`
-3. Pastikan frontend mengirim `_method=PUT` di body form-data
-4. Di controller, gunakan `User::find(auth()->id())` bukan `auth()->user()` untuk update & save
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
+class AuthController extends Controller
+{
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name'     => 'required|string',
+            'email'    => 'required|email|unique:users',
+            'password' => 'required|min:8',
+        ]);
+
+        $user = User::create([
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        $token = JWTAuth::fromUser($user);
+
+        return response()->json(['user' => $user, 'token' => $token], 201);
+    }
+
+    public function login(Request $request)
+    {
+        $credentials = $request->only('email', 'password');
+
+        $token = JWTAuth::attempt($credentials);
+
+        if (!$token) {
+            return response()->json(['message' => 'Email atau password salah'], 401);
+        }
+
+        return response()->json(['user' => auth()->user(), 'token' => $token]);
+    }
+
+    public function me()
+    {
+        return response()->json(auth()->user());
+    }
+
+    public function logout()
+    {
+        JWTAuth::invalidate(JWTAuth::getToken());
+
+        return response()->json(['message' => 'Logout berhasil']);
+    }
+}
+```
+
+> **Penjelasan:**
+>
+> - `Hash::make()` → mengenkripsi password sebelum disimpan ke database
+> - `JWTAuth::fromUser($user)` → generate token dari object user
+> - `JWTAuth::attempt($credentials)` → cek email & password, jika cocok langsung return token
+> - `JWTAuth::invalidate()` → membuat token tidak bisa dipakai lagi (logout)
 
 ---
 
-### ❌ Error 404 pada semua route `/api/*`
+## 10. CategoryController
 
-**Penyebab:** File `routes/api.php` belum di-bootstrap oleh Laravel.
+Buat file `app/Http/Controllers/CategoryController.php`:
 
-**Solusi:**
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Category;
+use Illuminate\Http\Request;
+
+class CategoryController extends Controller
+{
+    // Ambil semua kategori beserta jumlah post yang menggunakannya
+    public function index()
+    {
+        $categories = Category::withCount('posts')->get();
+
+        return response()->json($categories);
+    }
+
+    // Tambah kategori baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'category_name' => 'required|string|unique:categories,category_name',
+        ]);
+
+        $category = Category::create([
+            'category_name' => $request->category_name,
+        ]);
+
+        return response()->json($category, 201);
+    }
+
+    // Update kategori
+    public function update(Request $request, $id)
+    {
+        $category = Category::find($id);
+
+        if (!$category) {
+            return response()->json(['message' => 'Category tidak ditemukan'], 404);
+        }
+
+        $request->validate([
+            // unique kecuali untuk record dirinya sendiri (pakai $id)
+            'category_name' => 'required|string|unique:categories,category_name,' . $id,
+        ]);
+
+        $category->update([
+            'category_name' => $request->category_name,
+        ]);
+
+        return response()->json($category);
+    }
+
+    // Hapus kategori — tolak jika masih dipakai post
+    public function destroy($id)
+    {
+        $category = Category::withCount('posts')->find($id);
+
+        if (!$category) {
+            return response()->json(['message' => 'Category tidak ditemukan'], 404);
+        }
+
+        if ($category->posts_count > 0) {
+            return response()->json([
+                'message' => "Category \"{$category->category_name}\" tidak bisa dihapus karena masih digunakan oleh {$category->posts_count} post.",
+            ], 422);
+        }
+
+        $category->delete();
+
+        return response()->json(['message' => 'Category berhasil dihapus']);
+    }
+}
+```
+
+> **Penjelasan:**
+>
+> - `withCount('posts')` → menambahkan kolom `posts_count` di hasil query, tanpa perlu query terpisah
+> - Status `422` → artinya request valid tapi tidak bisa diproses (Unprocessable Entity)
+
+---
+
+## 11. PostController
+
+Buat file `app/Http/Controllers/PostController.php`:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class PostController extends Controller
+{
+    // Ambil semua post beserta relasi user dan category
+    public function index()
+    {
+        $posts = Post::with(['user', 'category'])->latest()->get();
+
+        return response()->json($posts);
+    }
+
+    // Ambil satu post berdasarkan slug
+    public function show($slug)
+    {
+        $post = Post::with(['user', 'category'])->where('slug', $slug)->first();
+
+        if (!$post) {
+            return response()->json(['message' => 'Post tidak ditemukan'], 404);
+        }
+
+        return response()->json($post);
+    }
+
+    // Buat post baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title'       => 'required|string',
+            'content'     => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        $post = Post::create([
+            'title'       => $request->title,
+            'slug'        => Str::slug($request->title) . '-' . Str::random(5),
+            'content'     => $request->content,
+            'category_id' => $request->category_id,
+            'user_id'     => auth()->id(),
+        ]);
+
+        return response()->json($post, 201);
+    }
+
+    // Update post berdasarkan slug
+    public function update(Request $request, $slug)
+    {
+        $post = Post::where('slug', $slug)->first();
+
+        if (!$post) {
+            return response()->json(['message' => 'Post tidak ditemukan'], 404);
+        }
+
+        $request->validate([
+            'title'       => 'required|string',
+            'content'     => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        $post->update([
+            'title'       => $request->title,
+            'slug'        => Str::slug($request->title) . '-' . Str::random(5),
+            'content'     => $request->content,
+            'category_id' => $request->category_id,
+        ]);
+
+        return response()->json($post);
+    }
+
+    // Hapus post
+    public function destroy($slug)
+    {
+        $post = Post::where('slug', $slug)->first();
+
+        if (!$post) {
+            return response()->json(['message' => 'Post tidak ditemukan'], 404);
+        }
+
+        $post->delete();
+
+        return response()->json(['message' => 'Post berhasil dihapus']);
+    }
+}
+```
+
+> **Penjelasan:**
+>
+> - `Post::with(['user', 'category'])` → eager loading, mengambil relasi sekaligus dalam satu query (lebih efisien)
+> - `Str::slug()` → mengubah judul menjadi format slug (huruf kecil, spasi jadi `-`)
+> - `Str::random(5)` → tambahkan 5 karakter acak agar slug unik walau judul sama
+> - `auth()->id()` → mengambil ID user yang sedang login dari token JWT
+
+---
+
+## 12. Routes API
+
+Edit file `routes/api.php`:
+
+```php
+<?php
+
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\PostController;
+use App\Http\Middleware\CheckToken;
+use Illuminate\Support\Facades\Route;
+
+// ─── Public (tidak perlu token) ───────────────────────────
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login',    [AuthController::class, 'login']);
+
+// ─── Protected (wajib pakai token) ────────────────────────
+Route::middleware(CheckToken::class)->group(function () {
+
+    // Auth
+    Route::get('/me',      [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Posts
+    Route::get('/posts',                [PostController::class, 'index']);
+    Route::post('/posts',               [PostController::class, 'store']);
+    Route::get('/posts/{slug}',         [PostController::class, 'show']);
+    Route::post('/posts/{slug}/edit',   [PostController::class, 'update']);
+    Route::post('/posts/{slug}/delete', [PostController::class, 'destroy']);
+
+    // Categories
+    Route::get('/categories',                  [CategoryController::class, 'index']);
+    Route::post('/categories',                 [CategoryController::class, 'store']);
+    Route::post('/categories/{id}/edit',       [CategoryController::class, 'update']);
+    Route::post('/categories/{id}/delete',     [CategoryController::class, 'destroy']);
+});
+```
+
+> **Kenapa pakai POST untuk edit dan delete?**
+> Karena beberapa environment (hosting shared, proxy) memblokir method `PUT`, `PATCH`, `DELETE`. Pakai `POST` lebih aman dan simpel untuk API ini.
+
+---
+
+## 13. Konfigurasi CORS
+
+Buka file `config/cors.php`, sesuaikan:
+
+```php
+'paths' => ['api/*'],
+
+'allowed_origins' => ['http://localhost:5173'],  // URL Vue kamu
+
+'allowed_methods' => ['*'],
+
+'allowed_headers' => ['*'],
+```
+
+> Jika ingin izinkan semua origin (sementara untuk development):
+>
+> ```php
+> 'allowed_origins' => ['*'],
+> ```
+
+---
+
+## 14. Jalankan Server
 
 ```bash
-php artisan install:api
-php artisan route:clear
-php artisan route:list  # verifikasi route muncul
-php artisan serve
+php artisan serve --port=8001
+```
+
+Server akan berjalan di `http://127.0.0.1:8001`
+
+---
+
+## 🧪 Test API Secara Manual
+
+Kamu bisa test API menggunakan **Thunder Client** (extension VS Code) atau **Postman**.
+
+### Register
+
+```
+POST http://127.0.0.1:8001/api/register
+Content-Type: application/json
+
+{
+  "name": "Budi",
+  "email": "budi@email.com",
+  "password": "password123"
+}
+```
+
+### Login
+
+```
+POST http://127.0.0.1:8001/api/login
+Content-Type: application/json
+
+{
+  "email": "budi@email.com",
+  "password": "password123"
+}
+```
+
+Response akan mengembalikan token, simpan tokennya untuk request berikutnya.
+
+### Ambil Semua Post (butuh token)
+
+```
+GET http://127.0.0.1:8001/api/posts
+Authorization: Bearer <token_dari_login>
 ```
 
 ---
 
-## 📄 Lisensi
+## ✅ Checklist Akhir
 
-Proyek ini dibuat untuk keperluan **edukasi dan pelatihan mahasiswa**. Bebas digunakan dan dimodifikasi untuk pembelajaran.
+- [ ] PHP 8.2+ dan Composer terinstall
+- [ ] Database `blog_api` sudah dibuat di MySQL
+- [ ] `.env` sudah dikonfigurasi (DB & JWT_SECRET)
+- [ ] `php artisan migrate` sudah dijalankan
+- [ ] `config/auth.php` sudah diubah ke guard `api` dengan driver `jwt`
+- [ ] CORS sudah dikonfigurasi mengizinkan URL Vue
+
+---
+
+## 📁 Struktur File Akhir
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── AuthController.php
+│   │   ├── CategoryController.php
+│   │   └── PostController.php
+│   └── Middleware/
+│       └── CheckToken.php
+├── Models/
+│   ├── User.php
+│   ├── Category.php
+│   └── Post.php
+config/
+├── auth.php     ← edit guard ke jwt
+└── cors.php     ← edit allowed_origins
+routes/
+└── api.php
+```
+
+---
+
+## 📌 Referensi HTTP Status Code
+
+| Code | Arti          | Contoh Penggunaan                               |
+| ---- | ------------- | ----------------------------------------------- |
+| 200  | OK            | GET berhasil                                    |
+| 201  | Created       | POST berhasil membuat data baru                 |
+| 401  | Unauthorized  | Token tidak ada / tidak valid                   |
+| 404  | Not Found     | Data tidak ditemukan                            |
+| 422  | Unprocessable | Validasi gagal / kondisi bisnis tidak terpenuhi |
+| 500  | Server Error  | Ada bug di server                               |

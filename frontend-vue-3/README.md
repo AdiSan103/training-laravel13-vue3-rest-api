@@ -1,480 +1,1405 @@
-# 📦 Inventory App — Vue 3 + Vite
+# 📘 Panduan Vue 3 + Vite — Blog App
 
-Aplikasi manajemen inventaris berbasis web yang dibangun dengan **Vue 3** dan **Vite**, terkoneksi ke backend **Laravel + JWT Auth**.
-
-Proyek ini dibuat sebagai **bahan pembelajaran** mahasiswa yang ingin memahami cara membangun aplikasi SPA (Single Page Application) modern secara terstruktur — mulai dari autentikasi, konsumsi REST API, hingga manajemen state komponen.
+Panduan ini akan membimbing kamu dari **nol** hingga membuat aplikasi blog lengkap dengan Vue 3 dan Vite, terkoneksi ke Laravel API.
 
 ---
 
-## 🗂️ Daftar Isi
+## 📋 Daftar Isi
 
-- [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
-- [Fitur Aplikasi](#-fitur-aplikasi)
-- [Struktur Folder](#-struktur-folder)
-- [Prasyarat](#-prasyarat)
-- [Cara Clone & Install](#-cara-clone--install)
-- [Konfigurasi](#-konfigurasi)
-- [Menjalankan Aplikasi](#-menjalankan-aplikasi)
-- [Panduan Penggunaan](#-panduan-penggunaan)
-- [Penjelasan Konsep Penting](#-penjelasan-konsep-penting)
-- [Alur Data Aplikasi](#-alur-data-aplikasi)
-
----
-
-## 🧰 Teknologi yang Digunakan
-
-| Teknologi                                            | Versi  | Keterangan                                          |
-| ---------------------------------------------------- | ------ | --------------------------------------------------- |
-| [Vue 3](https://vuejs.org/)                          | ^3.4   | Framework JavaScript utama (Composition API)        |
-| [Vite](https://vitejs.dev/)                          | ^5.0   | Build tool & development server yang sangat cepat   |
-| [Vue Router](https://router.vuejs.org/)              | ^4.3   | Routing SPA (navigasi antar halaman)                |
-| Vanilla CSS                                          | —      | Styling tanpa framework CSS (monokrom, shadcn-like) |
-| Fetch API                                            | Native | HTTP request ke backend (tanpa Axios)               |
-| [Laravel](https://laravel.com/)                      | 11/13  | Backend REST API (terpisah, harus jalan sendiri)    |
-| [JWT Auth](https://github.com/tymondesigns/jwt-auth) | —      | Autentikasi berbasis token di sisi backend          |
-
-> **Catatan:** Proyek ini **hanya frontend**. Backend Laravel harus disiapkan dan dijalankan secara terpisah.
+1. [Persiapan](#1-persiapan)
+2. [Buat Project Vue](#2-buat-project-vue)
+3. [Struktur Folder](#3-struktur-folder)
+4. [Install Vue Router](#4-install-vue-router)
+5. [Setup Router](#5-setup-router)
+6. [File .env](#6-file-env)
+7. [Buat Halaman Login](#7-buat-halaman-login)
+8. [Buat Halaman Register](#8-buat-halaman-register)
+9. [Buat Halaman Posts (Daftar Post)](#9-buat-halaman-posts-daftar-post)
+10. [Buat Halaman Detail Post](#10-buat-halaman-detail-post)
+11. [Buat Halaman Tambah Post](#11-buat-halaman-tambah-post)
+12. [Buat Halaman Edit Post](#12-buat-halaman-edit-post)
+13. [Buat Halaman Kategori](#13-buat-halaman-kategori)
+14. [Buat Halaman Tambah Kategori](#14-buat-halaman-tambah-kategori)
+15. [Buat Halaman Edit Kategori](#15-buat-halaman-edit-kategori)
+16. [Buat Component Navbar](#16-buat-component-navbar)
+17. [Update App.vue](#17-update-appvue)
+18. [Jalankan Project](#18-jalankan-project)
 
 ---
 
-## ✨ Fitur Aplikasi
+## 1. Persiapan
 
-| Halaman               | Fitur                                                          |
-| --------------------- | -------------------------------------------------------------- |
-| **Login**             | Form login, validasi client-side, simpan JWT token             |
-| **Register**          | Form registrasi user baru                                      |
-| **Dashboard**         | Tabel produk, filter pencarian & stok, statistik, hapus produk |
-| **Detail Produk**     | Tampilan lengkap satu produk, tombol edit & hapus              |
-| **Tambah Produk**     | Form tambah produk baru dengan upload gambar                   |
-| **Edit Produk**       | Form edit produk (1 komponen reuse untuk create & edit)        |
-| **Profil**            | Lihat & update nama, password, dan avatar                      |
-| **Logout**            | Invalidasi token, redirect ke login                            |
-| **Alert Popup**       | Notifikasi aksi (sukses/gagal) di semua halaman                |
-| **Konfirmasi Delete** | Modal dialog sebelum menghapus data                            |
+Pastikan kamu sudah menginstall:
 
----
+- **Node.js** versi 18 ke atas → [download di nodejs.org](https://nodejs.org)
+- **npm** (sudah termasuk saat install Node.js)
+- **VS Code** (rekomendasi editor) → [download di code.visualstudio.com](https://code.visualstudio.com)
 
-## 📁 Struktur Folder
-
-```
-inventory-app/
-│
-├── index.html                      # HTML utama — titik masuk aplikasi
-├── vite.config.js                  # Konfigurasi Vite
-├── package.json                    # Daftar dependencies dan scripts
-│
-└── src/                            # Semua kode sumber Vue
-    │
-    ├── main.js                     # Entry point: inisialisasi Vue + Router
-    ├── App.vue                     # Komponen root: layout utama aplikasi
-    │
-    ├── assets/
-    │   └── main.css                # CSS global (variabel, reset, komponen)
-    │
-    ├── services/                   # 📡 Layer komunikasi dengan API
-    │   ├── api.js                  # Base fetch wrapper (get, post, postForm, del)
-    │   ├── authService.js          # Fungsi login, register, me, logout, updateProfile
-    │   └── productService.js       # Fungsi CRUD produk
-    │
-    ├── composables/                # 🔁 Logika reaktif yang bisa dipakai ulang
-    │   ├── useAlert.js             # Manajemen notifikasi popup global
-    │   └── useAuth.js              # State user yang sedang login
-    │
-    ├── router/
-    │   └── index.js                # Definisi route + navigation guard (proteksi halaman)
-    │
-    ├── components/                 # 🧩 Komponen kecil yang dipakai ulang
-    │   ├── AppSidebar.vue          # Sidebar navigasi + tombol logout
-    │   ├── AlertPopup.vue          # Notifikasi floating (success/error/warning)
-    │   └── ConfirmModal.vue        # Dialog konfirmasi sebelum hapus data
-    │
-    └── views/                      # 📄 Halaman-halaman utama aplikasi
-        ├── LoginView.vue           # Halaman login
-        ├── RegisterView.vue        # Halaman registrasi
-        ├── DashboardView.vue       # Daftar produk + filter + statistik
-        ├── ProductDetailView.vue   # Detail satu produk
-        ├── ProductFormView.vue     # Form tambah & edit produk (1 file, 2 mode)
-        └── ProfileView.vue         # Profil user + form update
-```
-
-### Penjelasan Singkat Tiap Folder
-
-#### `src/services/` — Layer API
-
-Berisi semua fungsi yang bertugas **berkomunikasi dengan backend**. Tidak ada `fetch()` yang ditulis langsung di dalam View atau Component — semuanya dipusatkan di sini agar mudah diubah.
-
-- `api.js` → fungsi dasar: `get()`, `post()`, `postForm()`, `del()`, manajemen token
-- `authService.js` → semua endpoint `/login`, `/register`, `/me`, `/logout`, `/update-profile`
-- `productService.js` → semua endpoint `/products` (CRUD)
-
-#### `src/composables/` — Logika Reaktif Reusable
-
-Composable adalah fungsi yang menggunakan fitur reaktivitas Vue (`ref`, `computed`) dan bisa dipanggil di banyak komponen berbeda.
-
-- `useAlert.js` → menyimpan daftar alert aktif; dipanggil di `AlertPopup.vue` dan di View mana pun
-- `useAuth.js` → menyimpan data user yang sedang login; dipanggil di Sidebar, Profile, App.vue
-
-#### `src/router/` — Manajemen Halaman
-
-Mengatur halaman mana yang bisa diakses tanpa login (public) dan mana yang butuh token (protected), menggunakan **navigation guard**.
-
-#### `src/components/` — Komponen Reusable
-
-Komponen kecil yang dipakai lebih dari satu kali atau bersifat global (alert, modal, sidebar).
-
-#### `src/views/` — Halaman Utama
-
-Setiap file mewakili satu halaman. View boleh memanggil composable dan service, lalu hasilnya ditampilkan ke template.
-
----
-
-## 🛠️ Prasyarat
-
-Pastikan software berikut sudah terpasang di komputer Anda sebelum memulai.
-
-### Wajib
-
-| Software    | Versi Minimum | Cara Cek         |
-| ----------- | ------------- | ---------------- |
-| **Node.js** | v18 ke atas   | `node --version` |
-| **npm**     | v8 ke atas    | `npm --version`  |
-| **Git**     | —             | `git --version`  |
-
-> Download Node.js di [https://nodejs.org](https://nodejs.org) — pilih versi **LTS**.
-
-### Backend
-
-Backend Laravel harus sudah berjalan di `http://127.0.0.1:8000` dengan konfigurasi:
-
-- JWT Auth terpasang dan dikonfigurasi
-- CORS diizinkan untuk `http://localhost:5173`
-- Migration dan seeder sudah dijalankan
-
----
-
-## 🚀 Cara Clone & Install
-
-Ikuti langkah-langkah berikut secara berurutan.
-
-### Langkah 1 — Clone Repository
+Cek versi Node.js kamu:
 
 ```bash
-git clone https://github.com/username/inventory-app.git
+node -v
+npm -v
 ```
 
-Masuk ke folder proyek:
+---
+
+## 2. Buat Project Vue
+
+Buka terminal, lalu jalankan:
 
 ```bash
-cd inventory-app
-```
-
-### Langkah 2 — Install Dependencies
-
-Perintah ini akan mengunduh semua package yang dibutuhkan (Vue, Vue Router, Vite) ke folder `node_modules/`.
-
-```bash
+npm create vite@latest blog-frontend -- --template vue
+cd blog-frontend
 npm install
 ```
 
-> Proses ini membutuhkan koneksi internet. Tunggu hingga selesai.
-
-### Langkah 3 — Selesai
-
-Tidak ada langkah tambahan. Tidak perlu file `.env` karena URL API sudah dikonfigurasi langsung di `src/services/api.js`.
-
----
-
-## ⚙️ Konfigurasi
-
-### Mengubah URL API Backend
-
-Jika backend berjalan di port atau host yang berbeda, buka file berikut:
-
-```
-src/services/api.js
-```
-
-Ubah nilai `BASE_URL` di baris paling atas:
-
-```javascript
-// Sebelum (default)
-const BASE_URL = "http://127.0.0.1:8000/api";
-
-// Jika backend di port berbeda
-const BASE_URL = "http://localhost:8080/api";
-```
-
-### Mengubah URL Gambar
-
-Jika URL gambar produk dan avatar berubah, buka `src/services/productService.js`:
-
-```javascript
-// Gambar produk
-export function getProductImageUrl(imageName) {
-  return `http://127.0.0.1:8000/uploads/products/${imageName}`;
-}
-
-// Avatar user
-export function getAvatarUrl(imageName) {
-  return `http://127.0.0.1:8000/uploads/avatars/${imageName}`;
-}
-```
+> **Penjelasan:**
+>
+> - `npm create vite@latest` → membuat project baru dengan Vite
+> - `--template vue` → pakai template Vue 3
+> - `cd blog-frontend` → masuk ke folder project
+> - `npm install` → install semua dependency dasar
 
 ---
 
-## ▶️ Menjalankan Aplikasi
+## 3. Struktur Folder
 
-### Mode Development (untuk belajar & coding)
+Setelah dibuat, struktur folder kamu akan seperti ini. Kita akan **menghapus file bawaan** dan menggantinya:
+
+```
+blog-frontend/
+├── public/
+├── src/
+│   ├── components/       ← buat folder ini
+│   │   └── Navbar.vue    ← component navbar
+│   ├── views/            ← buat folder ini
+│   │   ├── LoginView.vue
+│   │   ├── RegisterView.vue
+│   │   ├── PostsView.vue
+│   │   ├── PostDetailView.vue
+│   │   ├── PostCreateView.vue
+│   │   ├── PostEditView.vue
+│   │   ├── CategoriesView.vue
+│   │   ├── CategoryCreateView.vue
+│   │   └── CategoryEditView.vue
+│   ├── router/           ← buat folder ini
+│   │   └── index.js      ← konfigurasi routing
+│   ├── App.vue           ← file utama
+│   └── main.js           ← entry point
+├── .env                  ← simpan URL API
+└── package.json
+```
+
+Hapus file bawaan yang tidak dipakai:
+
+```bash
+rm src/components/HelloWorld.vue
+rm src/assets/vue.svg
+```
+
+---
+
+## 4. Install Vue Router
+
+Vue Router digunakan untuk berpindah halaman tanpa reload.
+
+```bash
+npm install vue-router
+```
+
+---
+
+## 5. Setup Router
+
+Buat file `src/router/index.js`:
+
+```js
+import { createRouter, createWebHistory } from "vue-router";
+import LoginView from "../views/LoginView.vue";
+import RegisterView from "../views/RegisterView.vue";
+import PostsView from "../views/PostsView.vue";
+import PostDetailView from "../views/PostDetailView.vue";
+import PostCreateView from "../views/PostCreateView.vue";
+import PostEditView from "../views/PostEditView.vue";
+import CategoriesView from "../views/CategoriesView.vue";
+import CategoryCreateView from "../views/CategoryCreateView.vue";
+import CategoryEditView from "../views/CategoryEditView.vue";
+
+const routes = [
+  { path: "/", redirect: "/posts" },
+  { path: "/login", component: LoginView },
+  { path: "/register", component: RegisterView },
+  { path: "/posts", component: PostsView, meta: { auth: true } },
+  { path: "/posts/create", component: PostCreateView, meta: { auth: true } },
+  { path: "/posts/:slug", component: PostDetailView, meta: { auth: true } },
+  { path: "/posts/:slug/edit", component: PostEditView, meta: { auth: true } },
+  { path: "/categories", component: CategoriesView, meta: { auth: true } },
+  {
+    path: "/categories/create",
+    component: CategoryCreateView,
+    meta: { auth: true },
+  },
+  {
+    path: "/categories/:id/edit",
+    component: CategoryEditView,
+    meta: { auth: true },
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+// Guard: halaman dengan meta.auth hanya bisa diakses jika ada token
+router.beforeEach((to) => {
+  const token = localStorage.getItem("token");
+  if (to.meta.auth && !token) return "/login";
+});
+
+export default router;
+```
+
+> **Penjelasan:**
+>
+> - `meta: { auth: true }` → halaman ini butuh login
+> - `router.beforeEach` → dicek setiap kali pindah halaman, jika belum login akan diarahkan ke `/login`
+> - `createWebHistory()` → URL bersih tanpa `#` (misal `/posts` bukan `/#/posts`)
+
+Daftarkan router di `src/main.js`:
+
+```js
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+
+createApp(App).use(router).mount("#app");
+```
+
+---
+
+## 6. File .env
+
+Buat file `.env` di **root project** (sejajar dengan `package.json`):
+
+```env
+VITE_API_URL=http://127.0.0.1:8001/api
+```
+
+> **Penting:** Variabel di Vite harus diawali `VITE_` agar bisa diakses di dalam kode Vue.
+
+Cara pakainya di setiap file Vue:
+
+```js
+const BASE_URL = import.meta.env.VITE_API_URL;
+```
+
+---
+
+## 7. Buat Halaman Login
+
+Buat file `src/views/LoginView.vue`:
+
+```vue
+<template>
+  <div class="auth-wrapper">
+    <div class="card">
+      <h2>Login</h2>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input v-model="email" type="email" placeholder="email@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input
+          v-model="password"
+          type="password"
+          placeholder="••••••••"
+          @keyup.enter="login"
+        />
+      </div>
+
+      <button class="btn btn-primary" :disabled="loading" @click="login">
+        {{ loading ? "Loading..." : "Login" }}
+      </button>
+
+      <p class="error-msg" v-if="error">{{ error }}</p>
+
+      <p class="switch-link">
+        Belum punya akun? <router-link to="/register">Register</router-link>
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+const email = ref("");
+const password = ref("");
+const loading = ref(false);
+const error = ref("");
+
+async function login() {
+  error.value = "";
+  loading.value = true;
+
+  try {
+    const response = await fetch(`${BASE_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value,
+      }),
+    });
+
+    if (!response.ok) throw new Error("Email atau password salah");
+
+    const data = await response.json();
+    localStorage.setItem("token", data.token);
+    router.push("/posts");
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.auth-wrapper {
+  max-width: 420px;
+  margin: 60px auto;
+}
+h2 {
+  margin-bottom: 24px;
+  font-size: 1.5rem;
+}
+.switch-link {
+  margin-top: 16px;
+  font-size: 0.88rem;
+  color: #666;
+}
+.switch-link a {
+  color: #89b4fa;
+}
+</style>
+```
+
+> **Pola fetch yang dipakai di semua halaman:**
+>
+> ```js
+> const response = await fetch(url, options); // kirim request
+> if (!response.ok) throw new Error("..."); // cek jika gagal
+> const data = await response.json(); // ambil datanya
+> ```
+
+---
+
+## 8. Buat Halaman Register
+
+Buat file `src/views/RegisterView.vue`:
+
+```vue
+<template>
+  <div class="auth-wrapper">
+    <div class="card">
+      <h2>Register</h2>
+
+      <div class="form-group">
+        <label>Name</label>
+        <input v-model="name" type="text" placeholder="Nama lengkap" />
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input v-model="email" type="email" placeholder="email@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input
+          v-model="password"
+          type="password"
+          placeholder="Min. 8 karakter"
+        />
+      </div>
+
+      <button class="btn btn-primary" :disabled="loading" @click="register">
+        {{ loading ? "Loading..." : "Register" }}
+      </button>
+
+      <p class="error-msg" v-if="error">{{ error }}</p>
+
+      <p class="switch-link">
+        Sudah punya akun? <router-link to="/login">Login</router-link>
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+const name = ref("");
+const email = ref("");
+const password = ref("");
+const loading = ref(false);
+const error = ref("");
+
+async function register() {
+  error.value = "";
+  loading.value = true;
+
+  try {
+    const response = await fetch(`${BASE_URL}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        name: name.value,
+        email: email.value,
+        password: password.value,
+      }),
+    });
+
+    if (!response.ok)
+      throw new Error("Registrasi gagal, cek kembali data Anda");
+
+    const data = await response.json();
+    localStorage.setItem("token", data.token);
+    router.push("/posts");
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.auth-wrapper {
+  max-width: 420px;
+  margin: 60px auto;
+}
+h2 {
+  margin-bottom: 24px;
+  font-size: 1.5rem;
+}
+.switch-link {
+  margin-top: 16px;
+  font-size: 0.88rem;
+  color: #666;
+}
+.switch-link a {
+  color: #89b4fa;
+}
+</style>
+```
+
+---
+
+## 9. Buat Halaman Posts (Daftar Post)
+
+Buat file `src/views/PostsView.vue`:
+
+```vue
+<template>
+  <div>
+    <div class="page-header">
+      <h2>Semua Post</h2>
+    </div>
+
+    <p v-if="loading" class="loading">Memuat posts...</p>
+    <p v-if="error" class="error-msg">{{ error }}</p>
+
+    <div v-if="!loading && posts.length === 0" class="empty">
+      Belum ada post.
+      <router-link to="/posts/create">Buat sekarang →</router-link>
+    </div>
+
+    <div class="post-list">
+      <div v-for="post in posts" :key="post.id" class="post-card">
+        <div class="post-meta">
+          <span class="category">{{ post.category?.category_name }}</span>
+          <span class="date">{{ formatDate(post.created_at) }}</span>
+        </div>
+        <h3>{{ post.title }}</h3>
+        <p class="excerpt">{{ excerpt(post.content) }}</p>
+        <div class="post-actions">
+          <router-link :to="`/posts/${post.slug}`" class="btn btn-primary"
+            >Baca</router-link
+          >
+          <router-link
+            :to="`/posts/${post.slug}/edit`"
+            class="btn btn-secondary"
+            >Edit</router-link
+          >
+          <button class="btn btn-danger" @click="deletePost(post.slug)">
+            Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+
+const posts = ref([]);
+const loading = ref(false);
+const error = ref("");
+
+async function fetchPosts() {
+  loading.value = true;
+  error.value = "";
+
+  try {
+    const response = await fetch(`${BASE_URL}/posts`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Gagal memuat posts");
+
+    posts.value = await response.json();
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function deletePost(slug) {
+  if (!confirm("Yakin ingin menghapus post ini?")) return;
+
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${slug}/delete`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Gagal menghapus post");
+
+    posts.value = posts.value.filter((p) => p.slug !== slug);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function excerpt(text) {
+  return text?.length > 120 ? text.slice(0, 120) + "..." : text;
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+onMounted(fetchPosts);
+</script>
+```
+
+---
+
+## 10. Buat Halaman Detail Post
+
+Buat file `src/views/PostDetailView.vue`:
+
+```vue
+<template>
+  <div>
+    <button class="btn btn-secondary back-btn" @click="router.back()">
+      ← Kembali
+    </button>
+
+    <p v-if="loading" class="loading">Memuat post...</p>
+    <p v-if="error" class="error-msg">{{ error }}</p>
+
+    <div v-if="post" class="card">
+      <div class="post-meta">
+        <span class="category">{{ post.category?.category_name }}</span>
+        <span class="date">{{ formatDate(post.created_at) }}</span>
+      </div>
+      <h1>{{ post.title }}</h1>
+      <p class="author">oleh {{ post.user?.name }}</p>
+      <hr />
+      <div class="content">{{ post.content }}</div>
+      <div class="actions">
+        <router-link :to="`/posts/${post.slug}/edit`" class="btn btn-secondary"
+          >Edit</router-link
+        >
+        <button class="btn btn-danger" @click="deletePost">Hapus</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+const slug = route.params.slug;
+
+const post = ref(null);
+const loading = ref(false);
+const error = ref("");
+
+async function fetchPost() {
+  loading.value = true;
+  error.value = "";
+
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${slug}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Post tidak ditemukan");
+
+    post.value = await response.json();
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function deletePost() {
+  if (!confirm("Yakin ingin menghapus post ini?")) return;
+
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${slug}/delete`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Gagal menghapus post");
+
+    router.push("/posts");
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+onMounted(fetchPost);
+</script>
+```
+
+---
+
+## 11. Buat Halaman Tambah Post
+
+Buat file `src/views/PostCreateView.vue`:
+
+```vue
+<template>
+  <div>
+    <h2>Buat Post Baru</h2>
+    <div class="card" style="margin-top: 20px;">
+      <div class="form-group">
+        <label>Judul</label>
+        <input v-model="form.title" type="text" placeholder="Judul post..." />
+      </div>
+      <div class="form-group">
+        <label>Slug</label>
+        <input v-model="form.slug" type="text" placeholder="judul-post-anda" />
+        <small>Otomatis dari judul, bisa diubah manual</small>
+      </div>
+      <div class="form-group">
+        <label>Kategori</label>
+        <select v-model="form.category_id">
+          <option value="" disabled>Pilih kategori...</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+            {{ cat.category_name }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Konten</label>
+        <textarea
+          v-model="form.content"
+          placeholder="Tulis konten post di sini..."
+        />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" @click="router.back()">Batal</button>
+        <button class="btn btn-primary" :disabled="loading" @click="createPost">
+          {{ loading ? "Menyimpan..." : "Simpan Post" }}
+        </button>
+      </div>
+      <p class="error-msg" v-if="error">{{ error }}</p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch, onMounted } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+
+const categories = ref([]);
+const loading = ref(false);
+const error = ref("");
+
+const form = ref({ title: "", slug: "", category_id: "", content: "" });
+
+// Auto-generate slug dari title
+watch(
+  () => form.value.title,
+  (val) => {
+    form.value.slug = val
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+  },
+);
+
+async function fetchCategories() {
+  try {
+    const response = await fetch(`${BASE_URL}/categories`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error("Gagal memuat kategori");
+    categories.value = await response.json();
+  } catch (err) {
+    error.value = err.message;
+  }
+}
+
+async function createPost() {
+  error.value = "";
+  loading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/posts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(form.value),
+    });
+    if (!response.ok) throw new Error("Gagal membuat post");
+    const data = await response.json();
+    router.push(`/posts/${data.slug}`);
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(fetchCategories);
+</script>
+```
+
+---
+
+## 12. Buat Halaman Edit Post
+
+Buat file `src/views/PostEditView.vue`:
+
+```vue
+<template>
+  <div>
+    <h2>Edit Post</h2>
+    <p v-if="loading && !form.title" class="loading">Memuat data...</p>
+    <div class="card" style="margin-top: 20px;" v-if="form.title || !loading">
+      <div class="form-group">
+        <label>Judul</label>
+        <input v-model="form.title" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Slug</label>
+        <input v-model="form.slug" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Kategori</label>
+        <select v-model="form.category_id">
+          <option value="" disabled>Pilih kategori...</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+            {{ cat.category_name }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Konten</label>
+        <textarea v-model="form.content" />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" @click="router.back()">Batal</button>
+        <button class="btn btn-primary" :disabled="loading" @click="updatePost">
+          {{ loading ? "Menyimpan..." : "Update Post" }}
+        </button>
+      </div>
+      <p class="error-msg" v-if="error">{{ error }}</p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+const slug = route.params.slug;
+
+const categories = ref([]);
+const loading = ref(false);
+const error = ref("");
+const form = ref({ title: "", slug: "", category_id: "", content: "" });
+
+async function fetchPost() {
+  loading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${slug}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error("Post tidak ditemukan");
+    const data = await response.json();
+    form.value = {
+      title: data.title,
+      slug: data.slug,
+      category_id: data.category_id,
+      content: data.content,
+    };
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function fetchCategories() {
+  try {
+    const response = await fetch(`${BASE_URL}/categories`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error("Gagal memuat kategori");
+    categories.value = await response.json();
+  } catch (err) {
+    error.value = err.message;
+  }
+}
+
+async function updatePost() {
+  error.value = "";
+  loading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${slug}/edit`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(form.value),
+    });
+    if (!response.ok) throw new Error("Gagal mengupdate post");
+    const data = await response.json();
+    router.push(`/posts/${data.slug ?? slug}`);
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([fetchPost(), fetchCategories()]);
+});
+</script>
+```
+
+---
+
+## 13. Buat Halaman Kategori
+
+Buat file `src/views/CategoriesView.vue`:
+
+```vue
+<template>
+  <div>
+    <div class="page-header">
+      <h2>Kategori</h2>
+      <router-link to="/categories/create" class="btn btn-primary"
+        >+ Tambah Kategori</router-link
+      >
+    </div>
+
+    <p v-if="loading" class="loading">Memuat kategori...</p>
+    <p v-if="error" class="error-msg">{{ error }}</p>
+
+    <div v-if="!loading && categories.length === 0" class="empty">
+      Belum ada kategori.
+    </div>
+
+    <div class="category-list">
+      <div v-for="cat in categories" :key="cat.id" class="category-card">
+        <div class="cat-info">
+          <span class="cat-name">{{ cat.category_name }}</span>
+          <span class="cat-count">{{ cat.posts_count }} post</span>
+        </div>
+        <div class="cat-actions">
+          <router-link
+            :to="`/categories/${cat.id}/edit`"
+            class="btn btn-secondary"
+            >Edit</router-link
+          >
+          <button class="btn btn-danger" @click="deleteCategory(cat)">
+            Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+const categories = ref([]);
+const loading = ref(false);
+const error = ref("");
+
+async function fetchCategories() {
+  loading.value = true;
+  error.value = "";
+  try {
+    const response = await fetch(`${BASE_URL}/categories`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error("Gagal memuat kategori");
+    categories.value = await response.json();
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function deleteCategory(cat) {
+  if (!confirm(`Hapus kategori "${cat.category_name}"?`)) return;
+  try {
+    const response = await fetch(`${BASE_URL}/categories/${cat.id}/delete`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+    categories.value = categories.value.filter((c) => c.id !== cat.id);
+  } catch (err) {
+    alert("Gagal menghapus kategori");
+  }
+}
+
+onMounted(fetchCategories);
+</script>
+```
+
+---
+
+## 14. Buat Halaman Tambah Kategori
+
+Buat file `src/views/CategoryCreateView.vue`:
+
+```vue
+<template>
+  <div>
+    <h2>Tambah Kategori</h2>
+    <div class="card" style="margin-top: 20px;">
+      <div class="form-group">
+        <label>Nama Kategori</label>
+        <input
+          v-model="categoryName"
+          type="text"
+          placeholder="Nama kategori..."
+          @keyup.enter="createCategory"
+        />
+      </div>
+      <p class="error-msg" v-if="error">{{ error }}</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" @click="router.back()">Batal</button>
+        <button
+          class="btn btn-primary"
+          :disabled="loading"
+          @click="createCategory"
+        >
+          {{ loading ? "Menyimpan..." : "Simpan" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+const categoryName = ref("");
+const loading = ref(false);
+const error = ref("");
+
+async function createCategory() {
+  error.value = "";
+  loading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/categories`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ category_name: categoryName.value }),
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message ?? "Gagal menambah kategori");
+    }
+    router.push("/categories");
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+```
+
+---
+
+## 15. Buat Halaman Edit Kategori
+
+Buat file `src/views/CategoryEditView.vue`:
+
+```vue
+<template>
+  <div>
+    <h2>Edit Kategori</h2>
+    <p v-if="loading && !categoryName" class="loading">Memuat kategori...</p>
+    <div class="card" style="margin-top: 20px;" v-if="categoryName || !loading">
+      <div class="form-group">
+        <label>Nama Kategori</label>
+        <input
+          v-model="categoryName"
+          type="text"
+          placeholder="Nama kategori..."
+          @keyup.enter="updateCategory"
+        />
+      </div>
+      <p class="error-msg" v-if="error">{{ error }}</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" @click="router.back()">Batal</button>
+        <button
+          class="btn btn-primary"
+          :disabled="loading"
+          @click="updateCategory"
+        >
+          {{ loading ? "Menyimpan..." : "Update" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
+const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_URL;
+const token = localStorage.getItem("token");
+const id = route.params.id;
+const categoryName = ref("");
+const loading = ref(false);
+const error = ref("");
+
+async function fetchCategory() {
+  loading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/categories`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error("Gagal memuat kategori");
+    const data = await response.json();
+    const category = data.find((c) => c.id == id);
+    if (!category) throw new Error("Kategori tidak ditemukan");
+    categoryName.value = category.category_name;
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function updateCategory() {
+  error.value = "";
+  loading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/categories/${id}/edit`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ category_name: categoryName.value }),
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message ?? "Gagal mengupdate kategori");
+    }
+    router.push("/categories");
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(fetchCategory);
+</script>
+```
+
+---
+
+## 16. Buat Component Navbar
+
+Buat folder `src/components/`, lalu buat file `src/components/Navbar.vue`:
+
+```vue
+<template>
+  <nav v-if="isLoggedIn" class="navbar">
+    <router-link to="/posts" class="brand">📝 Blog</router-link>
+    <div class="nav-links">
+      <router-link to="/posts">Posts</router-link>
+      <router-link to="/categories">Kategori</router-link>
+      <router-link to="/posts/create">+ New Post</router-link>
+      <button @click="logout" class="btn-logout">Logout</button>
+    </div>
+  </nav>
+</template>
+
+<script setup>
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const isLoggedIn = computed(() => !!localStorage.getItem("token"));
+
+function logout() {
+  if (!confirm("Yakin ingin logout?")) return;
+
+  const token = localStorage.getItem("token");
+
+  fetch("http://127.0.0.1:8001/api/logout", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+
+  localStorage.removeItem("token");
+  window.location.href = "/login";
+}
+</script>
+
+<style scoped>
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #1e1e2e;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.nav-links a {
+  color: #cdd6f4;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.nav-links a:hover {
+  color: white;
+}
+.nav-links a.router-link-active {
+  color: #89b4fa;
+  font-weight: 600;
+}
+.btn-logout {
+  background: #f38ba8;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.btn-logout:hover {
+  background: #e66b84;
+}
+</style>
+```
+
+---
+
+## 17. Update App.vue
+
+Edit file `src/App.vue` menjadi:
+
+```vue
+<template>
+  <div>
+    <Navbar />
+    <main class="container">
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import Navbar from "./components/Navbar.vue";
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f5f5f5;
+  color: #222;
+}
+.container {
+  max-width: 820px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+.form-group {
+  margin-bottom: 16px;
+}
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #555;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #89b4fa;
+}
+textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+.btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: #1e1e2e;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #313244;
+}
+.btn-danger {
+  background: #f38ba8;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #e66b84;
+}
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #ccc;
+}
+
+.error-msg {
+  color: #e66b84;
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.btn-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+small {
+  font-size: 0.78rem;
+  color: #999;
+  margin-top: 4px;
+  display: block;
+}
+</style>
+```
+
+---
+
+## 18. Jalankan Project
 
 ```bash
 npm run dev
 ```
 
-Setelah berhasil, terminal akan menampilkan:
-
-```
-  VITE v5.x.x  ready in xxx ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-```
-
-Buka browser dan akses **http://localhost:5173**
-
-> Vite mendukung **Hot Module Replacement (HMR)**: setiap perubahan kode langsung terlihat di browser tanpa perlu refresh manual.
-
-### Mode Production (untuk deploy)
-
-```bash
-npm run build
-```
-
-Hasil build ada di folder `dist/`. Isi folder ini yang di-upload ke server.
-
-Untuk preview hasil build di lokal:
-
-```bash
-npm run preview
-```
+Buka browser ke `http://localhost:5173`
 
 ---
 
-## 📖 Panduan Penggunaan
+## ✅ Checklist Akhir
 
-### 1. Registrasi Akun Baru
-
-1. Buka `http://localhost:5173`
-2. Anda akan otomatis diarahkan ke halaman **Login**
-3. Klik link **"Daftar sekarang"** di bawah form
-4. Isi formulir: Nama, Email, Password, Konfirmasi Password
-5. Klik tombol **"Daftar"**
-6. Jika berhasil, Anda akan diarahkan ke halaman Login dengan notifikasi sukses
-
-### 2. Login
-
-1. Masukkan **Email** dan **Password** yang sudah didaftarkan
-2. Klik tombol **"Masuk"**
-3. Jika berhasil, Anda akan masuk ke **Dashboard**
-
-> JWT Token akan otomatis disimpan di `localStorage` browser Anda dan dipakai di setiap request berikutnya.
-
-### 3. Dashboard — Melihat Daftar Produk
-
-Setelah login, Anda akan melihat:
-
-- **Statistik**: Total Produk, Total Stok, Stok Habis, Stok Menipis
-- **Tabel Produk**: semua produk yang tersedia
-
-**Filter Produk (statis/client-side):**
-
-- Ketik di kolom **"Cari produk..."** untuk filter berdasarkan nama atau deskripsi
-- Gunakan dropdown **"Semua Stok"** untuk filter berdasarkan status stok:
-  - _Tersedia_ → stok > 5
-  - _Menipis_ → stok 1–5
-  - _Habis_ → stok 0
-
-### 4. Menambah Produk Baru
-
-1. Klik tombol **"Tambah Produk"** di Dashboard atau menu sidebar
-2. Isi form: Nama (wajib), Deskripsi, Harga (wajib), Stok (wajib)
-3. Upload gambar produk (opsional, maks. 2MB, format JPG/PNG)
-4. Klik **"Tambah Produk"**
-5. Setelah berhasil, Anda akan kembali ke Dashboard
-
-### 5. Melihat Detail Produk
-
-1. Di tabel Dashboard, klik ikon 👁️ (mata) pada baris produk
-2. Halaman detail menampilkan gambar, harga, stok, deskripsi, dan tanggal
-
-### 6. Mengedit Produk
-
-1. Di tabel Dashboard atau halaman detail, klik ikon ✏️ (pensil)
-2. Form akan terisi otomatis dengan data produk yang ada
-3. Ubah field yang diinginkan
-4. Upload gambar baru jika perlu (gambar lama akan tergantikan)
-5. Klik **"Simpan Perubahan"**
-
-### 7. Menghapus Produk
-
-1. Di tabel Dashboard atau halaman detail, klik ikon 🗑️ (tempat sampah)
-2. Dialog konfirmasi akan muncul
-3. Klik **"Hapus"** untuk konfirmasi, atau **"Batal"** untuk membatalkan
-4. Produk akan dihapus beserta gambarnya dari server
-
-> ⚠️ Penghapusan **tidak dapat dibatalkan**. Pastikan Anda yakin sebelum mengkonfirmasi.
-
-### 8. Update Profil
-
-1. Klik menu **"Profil"** di sidebar
-2. Anda dapat mengubah:
-   - **Nama**: isi field nama dengan nama baru
-   - **Password**: isi field password baru (min. 6 karakter) + konfirmasi
-   - **Avatar**: upload foto profil baru (JPG/PNG, maks. 2MB)
-3. Field yang **dikosongkan tidak akan diubah**
-4. Klik **"Simpan Perubahan"**
-
-### 9. Logout
-
-1. Klik tombol **"Keluar"** di bagian bawah sidebar
-2. Token akan diinvalidasi di server
-3. Anda akan diarahkan kembali ke halaman Login
+- [ ] Laravel API sudah berjalan di `http://127.0.0.1:8001`
+- [ ] File `.env` sudah dibuat dengan `VITE_API_URL`
+- [ ] `npm install vue-router` sudah dijalankan
+- [ ] Semua file view sudah dibuat di `src/views/`
+- [ ] Navbar sudah jadi component di `src/components/Navbar.vue`
+- [ ] Router sudah didaftarkan di `src/main.js`
 
 ---
 
-## 💡 Penjelasan Konsep Penting
-
-Bagian ini menjelaskan konsep yang dipakai dalam kode agar lebih mudah dipelajari.
-
-### Composition API vs Options API
-
-Proyek ini menggunakan **Composition API** (`<script setup>`), cara penulisan Vue 3 yang lebih modern:
-
-```vue
-<!-- Composition API (dipakai di proyek ini) -->
-<script setup>
-import { ref, onMounted } from "vue";
-
-const nama = ref(""); // variabel reaktif
-onMounted(() => {
-  // lifecycle hook
-  console.log("Komponen siap");
-});
-</script>
-```
-
-### `ref()` dan `reactive()`
-
-Kedua fungsi ini membuat data menjadi **reaktif** — artinya saat nilainya berubah, tampilan di template otomatis ikut berubah.
-
-```javascript
-import { ref, reactive } from "vue";
-
-// ref: untuk satu nilai (string, number, boolean)
-const isLoading = ref(false);
-isLoading.value = true; // akses via .value
-
-// reactive: untuk object dengan banyak field
-const form = reactive({ nama: "", email: "" });
-form.nama = "John"; // akses langsung tanpa .value
-```
-
-### Composable (`useAlert`, `useAuth`)
-
-Composable adalah fungsi yang membungkus logika reaktif agar bisa digunakan di banyak komponen:
-
-```javascript
-// Di composable (useAlert.js)
-const alerts = ref([])
-export function useAlert() {
-  function showAlert(type, title) { ... }
-  return { alerts, showAlert }
-}
-
-// Di komponen mana pun
-import { useAlert } from '../composables/useAlert.js'
-const { showAlert } = useAlert()
-showAlert('success', 'Berhasil!')
-```
-
-### Navigation Guard (Proteksi Halaman)
-
-Route guard mencegah user yang belum login mengakses halaman protected:
-
-```javascript
-router.beforeEach((to, from, next) => {
-  const isLoggedIn = !!getToken();
-
-  if (to.meta.requiresAuth && !isLoggedIn) {
-    next("/login"); // paksa ke login
-  } else {
-    next(); // lanjut ke halaman tujuan
-  }
-});
-```
-
-### Format Response API
-
-Semua response dari fungsi di `services/` menggunakan format `{ data, error }`:
-
-```javascript
-// Cara konsumsi di View
-const { data, error } = await productService.getAll();
-
-if (error) {
-  // tampilkan pesan error
-} else {
-  products.value = data.data;
-}
-```
-
----
-
-## 🔄 Alur Data Aplikasi
+## 📁 Struktur File Akhir
 
 ```
-User melakukan aksi (klik tombol)
-         │
-         ▼
-    View (.vue)         ← menampilkan data, menangani event
-         │
-         ▼
-    Service (.js)       ← memanggil API, mengembalikan { data, error }
-         │
-         ▼
-    api.js (fetch)      ← menambahkan token, mengirim request HTTP
-         │
-         ▼
-  Laravel Backend       ← memproses request, query database
-         │
-         ▼
-  Response JSON         ← { status, message, data }
-         │
-         ▼
-    api.js              ← parse response, tangani error
-         │
-         ▼
-    Service             ← kembalikan { data, error } ke View
-         │
-         ▼
-    View                ← update state → template auto re-render
-         │
-         ▼
-  useAlert.js           ← tampilkan notifikasi popup
+src/
+├── components/
+│   └── Navbar.vue
+├── views/
+│   ├── LoginView.vue
+│   ├── RegisterView.vue
+│   ├── PostsView.vue
+│   ├── PostDetailView.vue
+│   ├── PostCreateView.vue
+│   ├── PostEditView.vue
+│   ├── CategoriesView.vue
+│   ├── CategoryCreateView.vue
+│   └── CategoryEditView.vue
+├── router/
+│   └── index.js
+├── App.vue
+└── main.js
 ```
-
----
-
-## 🧑‍💻 Tips untuk Mahasiswa
-
-1. **Mulai dari `main.js`** — pahami urutan inisialisasi aplikasi
-2. **Baca `router/index.js`** — pahami route mana yang protected dan mana yang public
-3. **Pahami `services/api.js`** — ini adalah jantung komunikasi dengan backend
-4. **Coba modifikasi `main.css`** — ubah variabel CSS untuk melihat efeknya pada seluruh tampilan
-5. **Gunakan Vue DevTools** — extension browser untuk inspect state dan component tree secara real-time
-   - Download: [Chrome](https://chrome.google.com/webstore/detail/vuejs-devtools) | [Firefox](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-
----
-
-## 📄 Lisensi
-
-Proyek ini dibuat untuk keperluan **edukasi**. Bebas digunakan dan dimodifikasi untuk pembelajaran.

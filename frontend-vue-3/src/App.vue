@@ -1,104 +1,118 @@
 <template>
-  <!--
-    App.vue
-    -------
-    Komponen root yang membungkus seluruh aplikasi.
-
-    Struktur:
-    - Jika user sudah login → tampilkan sidebar + konten
-    - Jika belum login → tampilkan halaman auth saja (tanpa sidebar)
-    - AlertPopup selalu ada di semua halaman
-  -->
-
-  <!-- Alert popup global (muncul di pojok kanan atas) -->
-  <AlertPopup />
-
-  <!-- Layout dengan sidebar (halaman protected) -->
-  <div v-if="isLoggedIn" class="app-layout">
-    <!-- Tombol hamburger untuk mobile -->
-    <button
-      class="hamburger-btn"
-      @click="sidebarRef?.toggle()"
-      aria-label="Buka menu navigasi"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <line x1="3" y1="12" x2="21" y2="12" />
-        <line x1="3" y1="18" x2="21" y2="18" />
-      </svg>
-    </button>
-
-    <!-- Sidebar navigasi -->
-    <AppSidebar ref="sidebarRef" />
-
-    <!-- Konten halaman -->
-    <main class="app-main">
-      <!-- RouterView merender komponen sesuai route aktif -->
-      <RouterView />
+  <div>
+    <Navbar />
+    <main class="container">
+      <router-view />
     </main>
   </div>
-
-  <!-- Layout tanpa sidebar (halaman auth: login, register) -->
-  <RouterView v-else />
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import AppSidebar from "./components/AppSidebar.vue";
-import AlertPopup from "./components/AlertPopup.vue";
-import { useAuth } from "./composables/useAuth.js";
-
-const { isLoggedIn, fetchCurrentUser } = useAuth();
-
-// Ref ke komponen AppSidebar untuk memanggil toggle() dari sini
-const sidebarRef = ref(null);
-
-/**
- * Saat aplikasi pertama kali dibuka:
- * Jika ada token di localStorage → ambil data user dari API.
- * Ini memastikan state user terisi meski user refresh halaman.
- */
-onMounted(() => {
-  fetchCurrentUser();
-});
+import Navbar from "./components/Navbar.vue";
 </script>
 
 <style>
-/* Tombol hamburger — hanya tampil di mobile */
-.hamburger-btn {
-  display: none;
-  position: fixed;
-  top: 0.75rem;
-  left: 0.75rem;
-  z-index: 200;
-  background-color: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem;
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (max-width: 768px) {
-  .hamburger-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f5f5f5;
+  color: #222;
+}
 
-  /* Beri padding atas pada konten agar tidak tertutup tombol hamburger */
-  .app-main .page-content {
-    padding-top: 3.5rem;
-  }
+.container {
+  max-width: 820px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #555;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #89b4fa;
+}
+textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+.btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: #1e1e2e;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #313244;
+}
+.btn-danger {
+  background: #f38ba8;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #e66b84;
+}
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #ccc;
+}
+
+.error-msg {
+  color: #e66b84;
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
 }
 </style>
